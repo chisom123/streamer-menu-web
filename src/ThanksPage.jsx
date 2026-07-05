@@ -5,7 +5,7 @@ import { functions } from './firebase';
 import { track } from './posthog';
 
 // Replace with your real App Store listing once live.
-const APP_STORE_URL = 'https://apps.apple.com/app/socialstar-photo-competitions/id6473705189';
+const APP_STORE_URL = 'https://apps.apple.com/app/socialstar/id6473705189';
 
 function ThanksPage() {
   const [params] = useSearchParams();

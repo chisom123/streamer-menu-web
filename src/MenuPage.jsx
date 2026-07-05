@@ -19,6 +19,7 @@ function MenuPage() {
 
   const [cart, setCart] = useState({}); // menuItemId -> quantity
   const [cartOpen, setCartOpen] = useState(false);
+  const [nameScreenOpen, setNameScreenOpen] = useState(false);
   const [buyerName, setBuyerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -119,6 +120,12 @@ function MenuPage() {
     setCartOpen(true);
   }
 
+  function goToNameScreen() {
+    if (!meetsMinimum) return;
+    track('proceeded_to_checkout_details', { streamer_id: streamerId, item_count: itemCount, total });
+    setNameScreenOpen(true);
+  }
+
   async function submitOrder() {
     if (!canSubmit) return;
     setSubmitting(true);
@@ -176,13 +183,10 @@ function MenuPage() {
 
         .mp-scroll { padding: 0 20px 110px; }
         .mp-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 36px 0 28px; }
-        .mp-slogan { font-size: 28px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15; margin: 0 0 18px; }
-        .mp-identity { display: flex; align-items: center; gap: 10px; }
-        .mp-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--card-bg); flex-shrink: 0; }
-        .mp-avatar-fallback { width: 34px; height: 34px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: var(--secondary-text); flex-shrink: 0; }
-        .mp-identity-text { text-align: left; }
-        .mp-eyebrow { font-size: 11px; color: var(--secondary-text); font-weight: 600; margin: 0; }
-        .mp-title { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.1px; }
+        .mp-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: var(--card-bg); margin-bottom: 12px; }
+        .mp-avatar-fallback { width: 64px; height: 64px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 24px; color: var(--secondary-text); margin-bottom: 12px; }
+        .mp-livepill { display: inline-block; background: var(--danger); color: #fff; font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 999px; }
+        .mp-slogan { font-size: 26px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15; margin: 0 0 12px; }
 
         .mp-category-row { display: flex; align-items: center; gap: 10px; margin: 26px 0 10px; }
         .mp-category-row:first-of-type { margin-top: 4px; }
@@ -192,9 +196,9 @@ function MenuPage() {
         .mp-item { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--card-bg); }
         .mp-item:last-child { border-bottom: none; }
         .mp-item-main { flex: 1; min-width: 0; }
-        .mp-item-name { font-size: 14px; font-weight: 700; color: var(--primary-text); margin: 0 0 2px; }
+        .mp-item-name { font-size: 15px; font-weight: 700; color: var(--primary-text); margin: 0; }
+        .mp-item-price { font-size: 13px; font-weight: 700; color: var(--accent); margin: 2px 0; }
         .mp-item-desc { font-size: 12px; color: var(--secondary-text); margin: 0; line-height: 1.4; }
-        .mp-item-price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; margin-left: 6px; }
         .mp-qty { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .mp-qtybtn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--card-bg); color: var(--primary-text); font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.12s ease; }
         .mp-qtybtn:active:not(:disabled) { transform: scale(0.88); }
@@ -242,8 +246,6 @@ function MenuPage() {
         .mp-sheet-head .name { font-size: 19px; font-weight: 800; color: var(--primary-text); }
         .mp-sheet-head .sub { font-size: 11px; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
         .mp-sheet-scroll { overflow-y: auto; padding: 6px 20px 0; flex: 1; min-height: 0; }
-        .mp-sheet-namefield { padding: 14px 20px; border-top: 1px solid var(--divider); flex-shrink: 0; }
-        .mp-sheet-namefield .mp-fieldlabel { margin: 0 0 8px; }
 
         .mp-line { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px dotted var(--divider); gap: 10px; }
         .mp-line-name { font-size: 13px; font-weight: 700; color: var(--primary-text); }
@@ -263,17 +265,47 @@ function MenuPage() {
         .mp-total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
         .mp-total-label { font-size: 13px; color: var(--secondary-text); font-weight: 600; }
         .mp-total-value { font-size: 20px; font-weight: 800; color: var(--primary-text); }
-        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 14px; cursor: pointer; }
+        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .mp-primarybtn:disabled { background: var(--disabled-bg); color: var(--disabled-text); cursor: not-allowed; }
+        .mp-btn-spinner {
+          width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+          border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+          animation: mp-spin 0.7s linear infinite;
+        }
+        .mp-primarybtn:disabled .mp-btn-spinner { border-color: rgba(0,0,0,0.12); border-top-color: var(--secondary-text); }
         .mp-footnote { text-align: center; font-size: 11px; color: var(--secondary-text); margin-top: 12px; line-height: 1.5; }
         .mp-error { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 10px; text-align: center; }
 
-        .mp-centered { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--secondary-text); font-size: 15px; font-weight: 600; text-align: center; padding: 0 30px; }
+        .mp-centered { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--secondary-text); font-size: 15px; font-weight: 600; text-align: center; padding: 0 30px; }
+
+        /* Full-screen name step, slides in over everything */
+        .mp-namescreen {
+          position: fixed; inset: 0; background: var(--page-bg); z-index: 40;
+          display: flex; flex-direction: column;
+          transform: translateY(calc(100dvh + 40px)); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .mp-namescreen.open { transform: translateY(0); }
+        .mp-namescreen-scroll { flex: 1; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; }
+        .mp-namescreen-back { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary-text); font-size: 13px; font-weight: 700; margin-bottom: 24px; background: none; border: none; padding: 0; cursor: pointer; }
+        .mp-namescreen-title { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.3px; }
+        .mp-namescreen-sub { font-size: 13px; color: var(--secondary-text); margin: 0 0 28px; line-height: 1.5; }
+
+        @media (min-width: 560px) {
+          .mp-namescreen { left: 50%; right: auto; width: 100%; max-width: 480px; margin-left: -240px; }
+        }
+        .mp-spinner {
+          width: 44px; height: 44px; border-radius: 50%;
+          border: 4px solid var(--card-bg); border-top-color: var(--accent);
+          animation: mp-spin 0.7s linear infinite;
+        }
+        @keyframes mp-spin { to { transform: rotate(360deg); } }
         .mp-empty { text-align: center; color: var(--secondary-text); font-size: 13px; padding: 40px 0; }
       `}</style>
 
       {loading ? (
-        <div className="mp-root mp-centered">Loading…</div>
+        <div className="mp-root mp-centered">
+          <div className="mp-spinner" />
+        </div>
       ) : notFound ? (
         <div className="mp-root mp-centered">This request page isn't available.</div>
       ) : loadError ? (
@@ -283,18 +315,13 @@ function MenuPage() {
           <div className="mp-container">
             <div className="mp-scroll">
               <div className="mp-header">
-                <h1 className="mp-slogan">Watch Live</h1>
-                <div className="mp-identity">
-                  {profile.avatarUrl ? (
-                    <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
-                  ) : (
-                    <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
-                  )}
-                  <div className="mp-identity-text">
-                    <p className="mp-eyebrow">Performed by</p>
-                    <p className="mp-title">{profile.name}</p>
-                  </div>
-                </div>
+                {profile.avatarUrl ? (
+                  <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
+                ) : (
+                  <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
+                )}
+                <h1 className="mp-slogan">Watch {profile.name}</h1>
+                <span className="mp-livepill">LIVE</span>
               </div>
 
               {menuItems.length === 0 ? (
@@ -311,9 +338,8 @@ function MenuPage() {
                       return (
                         <div className="mp-item" key={item.id}>
                           <div className="mp-item-main">
-                            <p className="mp-item-name">
-                              {item.name} <span className="mp-item-price">${Number(item.price).toFixed(2)}</span>
-                            </p>
+                            <p className="mp-item-name">{item.name}</p>
+                            <p className="mp-item-price">${Number(item.price).toFixed(2)}</p>
                             {item.description && <p className="mp-item-desc">{item.description}</p>}
                           </div>
                           <div className="mp-qty">
@@ -385,16 +411,6 @@ function MenuPage() {
                 )}
               </div>
 
-              <div className="mp-sheet-namefield">
-                <div className="mp-fieldlabel">Your name</div>
-                <input
-                  className="mp-input"
-                  placeholder="So they know who sent it"
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                />
-              </div>
-
               <div className="mp-sheet-footer">
                 {!meetsMinimum && cartLines.length > 0 && (
                   <>
@@ -411,14 +427,37 @@ function MenuPage() {
                   <span className="mp-total-value">${total.toFixed(2)}</span>
                 </div>
 
-                {submitError && <div className="mp-error">{submitError}</div>}
-
-                <button className="mp-primarybtn" disabled={!canSubmit} onClick={submitOrder}>
-                  {submitting ? 'Redirecting to payment...' : `Pay $${total.toFixed(2)}`}
+                <button className="mp-primarybtn" disabled={!meetsMinimum} onClick={goToNameScreen}>
+                  Checkout
                 </button>
                 <div className="mp-footnote">
                   Minimum ${MIN_ORDER_TOTAL} order. You'll be redirected to a secure payment page.
                 </div>
+              </div>
+            </div>
+
+            <div className={`mp-namescreen ${nameScreenOpen ? 'open' : ''}`}>
+              <div className="mp-namescreen-scroll">
+                <button className="mp-namescreen-back" onClick={() => setNameScreenOpen(false)}>
+                  ← Back to order
+                </button>
+                <h1 className="mp-namescreen-title">What's your name?</h1>
+                <p className="mp-namescreen-sub">So {profile.name} knows who sent it.</p>
+
+                <div className="mp-fieldlabel">Your name</div>
+                <input
+                  className="mp-input"
+                  placeholder="e.g. Mia"
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                  autoFocus
+                />
+
+                {submitError && <div className="mp-error">{submitError}</div>}
+                <button className="mp-primarybtn" disabled={!canSubmit} onClick={submitOrder}>
+                  {submitting && <span className="mp-btn-spinner" />}
+                  {submitting ? 'Redirecting to payment...' : 'Continue'}
+                </button>
               </div>
             </div>
           </div>
