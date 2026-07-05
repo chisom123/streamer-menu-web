@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
+import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { functions } from './firebase';
 import { track, setStreamerContext } from './posthog';
 
@@ -17,11 +18,12 @@ function MenuPage() {
   const [loadError, setLoadError] = useState(null);
 
   const [cart, setCart] = useState({}); // menuItemId -> quantity
-  const [view, setView] = useState('menu'); // 'menu' | 'cart'
+  const [cartOpen, setCartOpen] = useState(false);
   const [buyerName, setBuyerName] = useState('');
   const [buyerContact, setBuyerContact] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [bump, setBump] = useState(false); // brief bounce on the bar when something's added
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +87,7 @@ function MenuPage() {
   const total = cartLines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   const meetsMinimum = total >= MIN_ORDER_TOTAL;
   const canSubmit = meetsMinimum && buyerName.trim().length > 0 && !submitting;
+  const progressPct = Math.min(100, (total / MIN_ORDER_TOTAL) * 100);
 
   function setQty(itemId, qty) {
     const clamped = Math.max(0, Math.min(MAX_QTY, qty));
@@ -105,14 +108,16 @@ function MenuPage() {
     setQty(item.id, next);
     if (delta > 0) {
       track('added_menu_item', { streamer_id: streamerId, item_id: item.id, item_name: item.name, quantity: next });
-    } else if (delta < 0 && current > 0) {
+      setBump(true);
+      setTimeout(() => setBump(false), 160);
+    } else {
       track('removed_menu_item', { streamer_id: streamerId, item_id: item.id, item_name: item.name, quantity: next });
     }
   }
 
-  function goToCart() {
+  function openCart() {
     track('opened_cart', { streamer_id: streamerId, item_count: itemCount, total });
-    setView('cart');
+    setCartOpen(true);
   }
 
   async function submitOrder() {
@@ -152,53 +157,113 @@ function MenuPage() {
           --page-bg: #FFFFFF; --card-bg: #F5F5F5; --input-bg: #E8E8E8;
           --primary-text: #111111; --secondary-text: #999999;
           --accent: #FF6B00; --disabled-bg: #EBEBEB; --disabled-text: #C7C7C7;
-          --danger: #E24B4A; --green: #16A34A;
-          min-height: 100vh; background: var(--page-bg); color: var(--primary-text);
+          --danger: #E24B4A; --green: #16A34A; --divider: #E5E5E5;
+          min-height: 100dvh; color: var(--primary-text);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           -webkit-font-smoothing: antialiased;
-          display: flex; justify-content: center;
         }
         .mp-root * { box-sizing: border-box; }
-        .mp-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; min-height: 100vh; }
-        .mp-scroll { flex: 1; padding: 0 20px 100px; overflow-y: auto; }
+
+        /* Full-bleed on any phone. Only becomes a centered, card-like
+           column once the viewport is wide enough that edge-to-edge text
+           would look bad (i.e. desktop) — not before. */
+        .mp-root { background: var(--page-bg); }
+        .mp-container { width: 100%; min-height: 100dvh; position: relative; background: var(--page-bg); }
+
+        @media (min-width: 560px) {
+          .mp-root { background: var(--card-bg); display: flex; justify-content: center; }
+          .mp-container { max-width: 480px; min-height: 100dvh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+        }
+
+        .mp-scroll { padding: 0 20px 110px; }
         .mp-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 0 24px; }
         .mp-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--card-bg); margin-bottom: 10px; }
         .mp-avatar-fallback { width: 56px; height: 56px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: var(--secondary-text); margin-bottom: 10px; }
         .mp-eyebrow { font-size: 12px; color: var(--secondary-text); font-weight: 600; margin-bottom: 2px; }
         .mp-title { font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.2px; }
-        .mp-category { font-size: 12px; font-weight: 800; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 0.04em; margin: 22px 0 8px; }
-        .mp-category:first-of-type { margin-top: 4px; }
-        .mp-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--card-bg); }
+
+        .mp-category-row { display: flex; align-items: center; gap: 10px; margin: 26px 0 10px; }
+        .mp-category-row:first-of-type { margin-top: 4px; }
+        .mp-category { font-size: 12px; font-weight: 800; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+        .mp-category-rule { flex: 1; height: 0; border-bottom: 2px dotted var(--divider); transform: translateY(2px); }
+
+        .mp-item { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--card-bg); }
+        .mp-item:last-child { border-bottom: none; }
         .mp-item-main { flex: 1; min-width: 0; }
         .mp-item-name { font-size: 14px; font-weight: 700; color: var(--primary-text); margin: 0 0 2px; }
         .mp-item-desc { font-size: 12px; color: var(--secondary-text); margin: 0; line-height: 1.4; }
         .mp-item-price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; margin-left: 6px; }
         .mp-qty { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .mp-qtybtn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--card-bg); color: var(--primary-text); font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .mp-qtybtn { width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--card-bg); color: var(--primary-text); font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.12s ease; }
+        .mp-qtybtn:active:not(:disabled) { transform: scale(0.88); }
         .mp-qtybtn.add { background: var(--accent); color: #fff; }
         .mp-qtybtn:disabled { opacity: 0.4; cursor: not-allowed; }
         .mp-qtynum { min-width: 16px; text-align: center; font-size: 14px; font-weight: 700; }
-        .mp-bar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--primary-text); color: #fff; cursor: pointer; border: none; width: 100%; max-width: 480px; }
-        .mp-bar-count { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-        .mp-badge { background: var(--accent); border-radius: 50%; width: 20px; height: 20px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
-        .mp-bar-total { font-size: 16px; font-weight: 800; }
-        .mp-back { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary-text); font-size: 13px; font-weight: 700; margin: 20px 0 16px; background: none; border: none; padding: 0; cursor: pointer; }
-        .mp-line { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--card-bg); gap: 10px; }
+
+        .mp-bar {
+          position: fixed; left: 0; right: 0; bottom: 0;
+          display: flex; align-items: center; gap: 14px;
+          padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); background: var(--primary-text); color: #fff;
+          cursor: pointer; border: none; width: 100%; z-index: 30;
+          transition: transform 0.15s ease;
+        }
+        .mp-bar.bump { transform: scale(1.02); }
+        .mp-bar-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .mp-bar-text { flex: 1; text-align: left; min-width: 0; }
+        .mp-bar-label { font-size: 15px; font-weight: 700; display: block; }
+        .mp-bar-total { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); display: block; margin-top: 1px; }
+        .mp-badge { background: var(--accent); border-radius: 50%; width: 26px; height: 26px; font-size: 13px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+
+        .mp-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+          opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 10;
+        }
+        .mp-overlay.open { opacity: 1; pointer-events: auto; }
+        .mp-sheet {
+          position: fixed; left: 0; right: 0; bottom: 0; max-height: 86dvh;
+          background: #fff; border-radius: 20px 20px 0 0; z-index: 20;
+          transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+          display: flex; flex-direction: column;
+          box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
+        }
+        .mp-sheet.open { transform: translateY(0); }
+
+        @media (min-width: 560px) {
+          .mp-bar, .mp-sheet { left: 50%; right: auto; width: 100%; max-width: 480px; transform: translateX(-50%); }
+          .mp-bar.bump { transform: translateX(-50%) scale(1.02); }
+          .mp-sheet.open { transform: translateX(-50%) translateY(0); }
+          .mp-sheet:not(.open) { transform: translateX(-50%) translateY(100%); }
+        }
+
+        .mp-sheet-handle { width: 36px; height: 4px; background: var(--divider); border-radius: 2px; margin: 10px auto 4px; }
+        .mp-sheet-scroll { overflow-y: auto; padding: 6px 20px 0; }
+        .mp-sheet-head { text-align: center; padding: 8px 0 16px; border-bottom: 2px dashed var(--divider); margin-bottom: 4px; }
+        .mp-sheet-head .name { font-size: 19px; font-weight: 800; color: var(--primary-text); }
+        .mp-sheet-head .sub { font-size: 11px; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+        .mp-line { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px dotted var(--divider); gap: 10px; }
         .mp-line-name { font-size: 13px; font-weight: 700; color: var(--primary-text); }
         .mp-line-qty { font-size: 11px; color: var(--secondary-text); }
         .mp-remove { background: none; border: none; color: var(--danger); font-size: 11px; font-weight: 700; padding: 0; margin-top: 4px; cursor: pointer; }
         .mp-line-price { font-size: 13px; font-weight: 700; color: var(--primary-text); white-space: nowrap; }
-        .mp-fieldlabel { font-size: 12px; font-weight: 700; color: var(--secondary-text); margin: 20px 0 8px; }
+        .mp-empty-cart { text-align: center; color: var(--secondary-text); font-size: 13px; padding: 30px 0; line-height: 1.6; }
+
+        .mp-fieldlabel { font-size: 12px; font-weight: 700; color: var(--secondary-text); margin: 18px 0 8px; }
         .mp-input { width: 100%; background: var(--input-bg); border: none; border-radius: 12px; padding: 12px 14px; font-size: 14px; font-weight: 600; color: var(--primary-text); font-family: inherit; outline: none; }
         .mp-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
-        .mp-summary { background: var(--card-bg); border-radius: 14px; padding: 14px; margin-top: 18px; }
-        .mp-summaryrow { display: flex; justify-content: space-between; font-size: 13px; }
-        .mp-summaryrow.total { font-weight: 800; font-size: 16px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
-        .mp-minnote { font-size: 12px; color: var(--danger); text-align: center; margin-top: 10px; font-weight: 600; }
-        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 20px; cursor: pointer; }
+
+        .mp-sheet-footer { padding: 14px 20px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid var(--divider); background: #fff; }
+        .mp-progress-track { height: 6px; background: var(--card-bg); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .mp-progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+        .mp-minnote { font-size: 12px; color: var(--danger); text-align: center; margin-bottom: 10px; font-weight: 600; }
+        .mp-total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+        .mp-total-label { font-size: 13px; color: var(--secondary-text); font-weight: 600; }
+        .mp-total-value { font-size: 20px; font-weight: 800; color: var(--primary-text); }
+        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 14px; cursor: pointer; }
         .mp-primarybtn:disabled { background: var(--disabled-bg); color: var(--disabled-text); cursor: not-allowed; }
         .mp-footnote { text-align: center; font-size: 11px; color: var(--secondary-text); margin-top: 12px; line-height: 1.5; }
-        .mp-error { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 12px; text-align: center; }
+        .mp-error { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 10px; text-align: center; }
+
         .mp-centered { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--secondary-text); font-size: 15px; font-weight: 600; text-align: center; padding: 0 30px; }
         .mp-empty { text-align: center; color: var(--secondary-text); font-size: 13px; padding: 40px 0; }
       `}</style>
@@ -213,145 +278,144 @@ function MenuPage() {
         <div className="mp-root">
           <div className="mp-container">
             <div className="mp-scroll">
-              {view === 'menu' ? (
-                <>
-                  <div className="mp-header">
-                    {profile.avatarUrl ? (
-                      <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
-                    ) : (
-                      <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
-                    )}
-                    <div className="mp-eyebrow">Build a request for</div>
-                    <h1 className="mp-title">{profile.name}</h1>
-                  </div>
+              <div className="mp-header">
+                {profile.avatarUrl ? (
+                  <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
+                ) : (
+                  <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
+                )}
+                <div className="mp-eyebrow">Build a request for</div>
+                <h1 className="mp-title">{profile.name}</h1>
+              </div>
 
-                  {menuItems.length === 0 ? (
-                    <div className="mp-empty">No menu items available right now.</div>
-                  ) : (
-                    Object.entries(categorized).map(([category, items]) => (
-                      <div key={category}>
-                        <div className="mp-category">{category}</div>
-                        {items.map((item) => {
-                          const qty = cart[item.id] ?? 0;
-                          return (
-                            <div className="mp-item" key={item.id}>
-                              <div className="mp-item-main">
-                                <p className="mp-item-name">
-                                  {item.name} <span className="mp-item-price">${Number(item.price).toFixed(2)}</span>
-                                </p>
-                                {item.description && <p className="mp-item-desc">{item.description}</p>}
-                              </div>
-                              <div className="mp-qty">
-                                <button
-                                  className="mp-qtybtn"
-                                  disabled={qty === 0}
-                                  onClick={() => bumpQty(item, -1)}
-                                  aria-label={`Remove one ${item.name}`}
-                                >
-                                  –
-                                </button>
-                                <span className="mp-qtynum">{qty}</span>
-                                <button
-                                  className="mp-qtybtn add"
-                                  disabled={qty >= MAX_QTY}
-                                  onClick={() => bumpQty(item, 1)}
-                                  aria-label={`Add one ${item.name}`}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))
-                  )}
-                </>
+              {menuItems.length === 0 ? (
+                <div className="mp-empty">No menu items available right now.</div>
               ) : (
-                <>
-                  <button className="mp-back" onClick={() => setView('menu')}>
-                    ← Back to menu
-                  </button>
-                  <h1 className="mp-title" style={{ textAlign: 'left', marginBottom: 4 }}>
-                    Your order for {profile.name}
-                  </h1>
-
-                  {cartLines.length === 0 ? (
-                    <div className="mp-empty">Your cart is empty.</div>
-                  ) : (
-                    cartLines.map((line) => (
-                      <div className="mp-line" key={line.menuItemId}>
-                        <div>
-                          <div className="mp-line-name">{line.name}</div>
-                          <div className="mp-line-qty">×{line.quantity}</div>
-                          <button
-                            className="mp-remove"
-                            onClick={() => {
-                              track('removed_menu_item', { streamer_id: streamerId, item_id: line.menuItemId, item_name: line.name, quantity: 0 });
-                              setQty(line.menuItemId, 0);
-                            }}
-                          >
-                            Remove
-                          </button>
+                Object.entries(categorized).map(([category, items]) => (
+                  <div key={category}>
+                    <div className="mp-category-row">
+                      <span className="mp-category">{category}</span>
+                      <span className="mp-category-rule" />
+                    </div>
+                    {items.map((item) => {
+                      const qty = cart[item.id] ?? 0;
+                      return (
+                        <div className="mp-item" key={item.id}>
+                          <div className="mp-item-main">
+                            <p className="mp-item-name">
+                              {item.name} <span className="mp-item-price">${Number(item.price).toFixed(2)}</span>
+                            </p>
+                            {item.description && <p className="mp-item-desc">{item.description}</p>}
+                          </div>
+                          <div className="mp-qty">
+                            <button
+                              className="mp-qtybtn"
+                              disabled={qty === 0}
+                              onClick={() => bumpQty(item, -1)}
+                              aria-label={`Remove one ${item.name}`}
+                            >
+                              <Minus size={14} strokeWidth={3.25} />
+                            </button>
+                            <span className="mp-qtynum">{qty}</span>
+                            <button
+                              className="mp-qtybtn add"
+                              disabled={qty >= MAX_QTY}
+                              onClick={() => bumpQty(item, 1)}
+                              aria-label={`Add one ${item.name}`}
+                            >
+                              <Plus size={14} strokeWidth={3.25} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="mp-line-price">${(line.price * line.quantity).toFixed(2)}</div>
-                      </div>
-                    ))
-                  )}
-
-                  <div className="mp-fieldlabel">Your name</div>
-                  <input
-                    className="mp-input"
-                    placeholder="So they know who sent it"
-                    value={buyerName}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                  />
-
-                  <div className="mp-fieldlabel">Email or phone (optional)</div>
-                  <input
-                    className="mp-input"
-                    placeholder="In case we need to reach you"
-                    value={buyerContact}
-                    onChange={(e) => setBuyerContact(e.target.value)}
-                  />
-
-                  <div className="mp-summary">
-                    <div className="mp-summaryrow">
-                      <span>{itemCount} item{itemCount === 1 ? '' : 's'}</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
-                    <div className="mp-summaryrow total">
-                      <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
-                    </div>
+                      );
+                    })}
                   </div>
-
-                  {!meetsMinimum && cartLines.length > 0 && (
-                    <div className="mp-minnote">
-                      Add ${(MIN_ORDER_TOTAL - total).toFixed(2)} more to hit the ${MIN_ORDER_TOTAL} minimum
-                    </div>
-                  )}
-
-                  {submitError && <div className="mp-error">{submitError}</div>}
-
-                  <button className="mp-primarybtn" disabled={!canSubmit} onClick={submitOrder}>
-                    {submitting ? 'Redirecting to payment…' : `Pay $${total.toFixed(2)}`}
-                  </button>
-                  <div className="mp-footnote">
-                    Minimum ${MIN_ORDER_TOTAL} order. You'll be redirected to a secure payment page.
-                  </div>
-                </>
+                ))
               )}
             </div>
 
-            {view === 'menu' && itemCount > 0 && (
-              <button className="mp-bar" onClick={goToCart}>
-                <span className="mp-bar-count">
-                  <span className="mp-badge">{itemCount}</span> item{itemCount === 1 ? '' : 's'}
+            {itemCount > 0 && !cartOpen && (
+              <button className={`mp-bar ${bump ? 'bump' : ''}`} onClick={openCart}>
+                <span className="mp-bar-icon">
+                  <ShoppingCart size={20} strokeWidth={2} />
                 </span>
-                <span className="mp-bar-total">${total.toFixed(2)}</span>
+                <span className="mp-bar-text">
+                  <span className="mp-bar-label">View order</span>
+                  <span className="mp-bar-total">${total.toFixed(2)}</span>
+                </span>
+                <span className="mp-badge">{itemCount}</span>
               </button>
             )}
+
+            <div className={`mp-overlay ${cartOpen ? 'open' : ''}`} onClick={() => setCartOpen(false)} />
+
+            <div className={`mp-sheet ${cartOpen ? 'open' : ''}`}>
+              <div className="mp-sheet-handle" />
+              <div className="mp-sheet-scroll">
+                <div className="mp-sheet-head">
+                  <div className="name">{profile.name.toUpperCase()}'S ORDER</div>
+                  <div className="sub">{itemCount === 0 ? 'Nothing yet' : `${itemCount} item${itemCount === 1 ? '' : 's'}`}</div>
+                </div>
+
+                {cartLines.length === 0 ? (
+                  <div className="mp-empty-cart">Nothing in your order yet.<br />Tap + on anything from the menu.</div>
+                ) : (
+                  cartLines.map((line) => (
+                    <div className="mp-line" key={line.menuItemId}>
+                      <div>
+                        <div className="mp-line-name">{line.name}</div>
+                        <div className="mp-line-qty">x{line.quantity}</div>
+                        <button className="mp-remove" onClick={() => setQty(line.menuItemId, 0)}>
+                          Remove
+                        </button>
+                      </div>
+                      <div className="mp-line-price">${(line.price * line.quantity).toFixed(2)}</div>
+                    </div>
+                  ))
+                )}
+
+                <div className="mp-fieldlabel">Your name</div>
+                <input
+                  className="mp-input"
+                  placeholder="So they know who sent it"
+                  value={buyerName}
+                  onChange={(e) => setBuyerName(e.target.value)}
+                />
+
+                <div className="mp-fieldlabel">Email or phone (optional)</div>
+                <input
+                  className="mp-input"
+                  placeholder="In case we need to reach you"
+                  value={buyerContact}
+                  onChange={(e) => setBuyerContact(e.target.value)}
+                  style={{ marginBottom: 16 }}
+                />
+              </div>
+
+              <div className="mp-sheet-footer">
+                <div className="mp-progress-track">
+                  <div className="mp-progress-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+                {!meetsMinimum && cartLines.length > 0 && (
+                  <div className="mp-minnote">
+                    Add ${(MIN_ORDER_TOTAL - total).toFixed(2)} more to hit the ${MIN_ORDER_TOTAL} minimum
+                  </div>
+                )}
+                <div className="mp-total-row">
+                  <span className="mp-total-label">Total</span>
+                  <span className="mp-total-value">${total.toFixed(2)}</span>
+                </div>
+
+                {submitError && <div className="mp-error">{submitError}</div>}
+
+                <button className="mp-primarybtn" disabled={!canSubmit} onClick={submitOrder}>
+                  {submitting ? 'Redirecting to payment...' : `Pay $${total.toFixed(2)}`}
+                </button>
+                <div className="mp-footnote">
+                  Minimum ${MIN_ORDER_TOTAL} order. You'll be redirected to a secure payment page.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
