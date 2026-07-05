@@ -20,7 +20,6 @@ function MenuPage() {
   const [cart, setCart] = useState({}); // menuItemId -> quantity
   const [cartOpen, setCartOpen] = useState(false);
   const [buyerName, setBuyerName] = useState('');
-  const [buyerContact, setBuyerContact] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [bump, setBump] = useState(false); // brief bounce on the bar when something's added
@@ -135,7 +134,7 @@ function MenuPage() {
       const res = await fn({
         streamerId,
         buyerName: buyerName.trim(),
-        buyerContact: buyerContact.trim() || null,
+        buyerContact: null,
         items: cartLines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity }))
       });
       const url = res.data?.url;
@@ -176,11 +175,14 @@ function MenuPage() {
         }
 
         .mp-scroll { padding: 0 20px 110px; }
-        .mp-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 0 24px; }
-        .mp-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--card-bg); margin-bottom: 10px; }
-        .mp-avatar-fallback { width: 56px; height: 56px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: var(--secondary-text); margin-bottom: 10px; }
-        .mp-eyebrow { font-size: 12px; color: var(--secondary-text); font-weight: 600; margin-bottom: 2px; }
-        .mp-title { font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.2px; }
+        .mp-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 36px 0 28px; }
+        .mp-slogan { font-size: 28px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.15; margin: 0 0 18px; }
+        .mp-identity { display: flex; align-items: center; gap: 10px; }
+        .mp-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--card-bg); flex-shrink: 0; }
+        .mp-avatar-fallback { width: 34px; height: 34px; border-radius: 50%; background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: var(--secondary-text); flex-shrink: 0; }
+        .mp-identity-text { text-align: left; }
+        .mp-eyebrow { font-size: 11px; color: var(--secondary-text); font-weight: 600; margin: 0; }
+        .mp-title { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.1px; }
 
         .mp-category-row { display: flex; align-items: center; gap: 10px; margin: 26px 0 10px; }
         .mp-category-row:first-of-type { margin-top: 4px; }
@@ -222,7 +224,7 @@ function MenuPage() {
         .mp-sheet {
           position: fixed; left: 0; right: 0; bottom: 0; max-height: 86dvh;
           background: #fff; border-radius: 20px 20px 0 0; z-index: 20;
-          transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+          transform: translateY(calc(100% + 40px)); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
           display: flex; flex-direction: column;
           box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
         }
@@ -232,14 +234,16 @@ function MenuPage() {
           .mp-bar, .mp-sheet { left: 50%; right: auto; width: 100%; max-width: 480px; transform: translateX(-50%); }
           .mp-bar.bump { transform: translateX(-50%) scale(1.02); }
           .mp-sheet.open { transform: translateX(-50%) translateY(0); }
-          .mp-sheet:not(.open) { transform: translateX(-50%) translateY(100%); }
+          .mp-sheet:not(.open) { transform: translateX(-50%) translateY(calc(100% + 40px)); }
         }
 
-        .mp-sheet-handle { width: 36px; height: 4px; background: var(--divider); border-radius: 2px; margin: 10px auto 4px; }
-        .mp-sheet-scroll { overflow-y: auto; padding: 6px 20px 0; }
-        .mp-sheet-head { text-align: center; padding: 8px 0 16px; border-bottom: 2px dashed var(--divider); margin-bottom: 4px; }
+        .mp-sheet-handle { width: 36px; height: 4px; background: var(--divider); border-radius: 2px; margin: 10px auto 4px; flex-shrink: 0; }
+        .mp-sheet-head { text-align: center; padding: 8px 20px 14px; border-bottom: 2px dashed var(--divider); flex-shrink: 0; }
         .mp-sheet-head .name { font-size: 19px; font-weight: 800; color: var(--primary-text); }
         .mp-sheet-head .sub { font-size: 11px; color: var(--secondary-text); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+        .mp-sheet-scroll { overflow-y: auto; padding: 6px 20px 0; flex: 1; min-height: 0; }
+        .mp-sheet-namefield { padding: 14px 20px; border-top: 1px solid var(--divider); flex-shrink: 0; }
+        .mp-sheet-namefield .mp-fieldlabel { margin: 0 0 8px; }
 
         .mp-line { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px dotted var(--divider); gap: 10px; }
         .mp-line-name { font-size: 13px; font-weight: 700; color: var(--primary-text); }
@@ -249,7 +253,7 @@ function MenuPage() {
         .mp-empty-cart { text-align: center; color: var(--secondary-text); font-size: 13px; padding: 30px 0; line-height: 1.6; }
 
         .mp-fieldlabel { font-size: 12px; font-weight: 700; color: var(--secondary-text); margin: 18px 0 8px; }
-        .mp-input { width: 100%; background: var(--input-bg); border: none; border-radius: 12px; padding: 12px 14px; font-size: 14px; font-weight: 600; color: var(--primary-text); font-family: inherit; outline: none; }
+        .mp-input { width: 100%; background: var(--input-bg); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; font-weight: 600; color: var(--primary-text); font-family: inherit; outline: none; }
         .mp-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 
         .mp-sheet-footer { padding: 14px 20px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid var(--divider); background: #fff; }
@@ -279,13 +283,18 @@ function MenuPage() {
           <div className="mp-container">
             <div className="mp-scroll">
               <div className="mp-header">
-                {profile.avatarUrl ? (
-                  <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
-                ) : (
-                  <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
-                )}
-                <div className="mp-eyebrow">Build a request for</div>
-                <h1 className="mp-title">{profile.name}</h1>
+                <h1 className="mp-slogan">Watch Live</h1>
+                <div className="mp-identity">
+                  {profile.avatarUrl ? (
+                    <img className="mp-avatar" src={profile.avatarUrl} alt={profile.name} />
+                  ) : (
+                    <div className="mp-avatar-fallback">{profile.name.charAt(0).toUpperCase()}</div>
+                  )}
+                  <div className="mp-identity-text">
+                    <p className="mp-eyebrow">Performed by</p>
+                    <p className="mp-title">{profile.name}</p>
+                  </div>
+                </div>
               </div>
 
               {menuItems.length === 0 ? (
@@ -351,12 +360,13 @@ function MenuPage() {
 
             <div className={`mp-sheet ${cartOpen ? 'open' : ''}`}>
               <div className="mp-sheet-handle" />
-              <div className="mp-sheet-scroll">
-                <div className="mp-sheet-head">
-                  <div className="name">{profile.name.toUpperCase()}'S ORDER</div>
-                  <div className="sub">{itemCount === 0 ? 'Nothing yet' : `${itemCount} item${itemCount === 1 ? '' : 's'}`}</div>
-                </div>
 
+              <div className="mp-sheet-head">
+                <div className="name">Order for {profile.name}</div>
+                <div className="sub">{itemCount === 0 ? 'Nothing yet' : `${itemCount} item${itemCount === 1 ? '' : 's'}`}</div>
+              </div>
+
+              <div className="mp-sheet-scroll">
                 {cartLines.length === 0 ? (
                   <div className="mp-empty-cart">Nothing in your order yet.<br />Tap + on anything from the menu.</div>
                 ) : (
@@ -373,7 +383,9 @@ function MenuPage() {
                     </div>
                   ))
                 )}
+              </div>
 
+              <div className="mp-sheet-namefield">
                 <div className="mp-fieldlabel">Your name</div>
                 <input
                   className="mp-input"
@@ -381,25 +393,18 @@ function MenuPage() {
                   value={buyerName}
                   onChange={(e) => setBuyerName(e.target.value)}
                 />
-
-                <div className="mp-fieldlabel">Email or phone (optional)</div>
-                <input
-                  className="mp-input"
-                  placeholder="In case we need to reach you"
-                  value={buyerContact}
-                  onChange={(e) => setBuyerContact(e.target.value)}
-                  style={{ marginBottom: 16 }}
-                />
               </div>
 
               <div className="mp-sheet-footer">
-                <div className="mp-progress-track">
-                  <div className="mp-progress-fill" style={{ width: `${progressPct}%` }} />
-                </div>
                 {!meetsMinimum && cartLines.length > 0 && (
-                  <div className="mp-minnote">
-                    Add ${(MIN_ORDER_TOTAL - total).toFixed(2)} more to hit the ${MIN_ORDER_TOTAL} minimum
-                  </div>
+                  <>
+                    <div className="mp-progress-track">
+                      <div className="mp-progress-fill" style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <div className="mp-minnote">
+                      Add ${(MIN_ORDER_TOTAL - total).toFixed(2)} more to hit the ${MIN_ORDER_TOTAL} minimum
+                    </div>
+                  </>
                 )}
                 <div className="mp-total-row">
                   <span className="mp-total-label">Total</span>
