@@ -35,7 +35,7 @@ function ThanksPage() {
         }
       } catch (e) {
         setStatus('error');
-        track('checkout_confirmation_failed', { session_id: sessionId, reason: 'error' });
+        track('checkout_confirmation_failed', { session_id: sessionId, reason: 'error', error: e?.message });
       }
     })();
   }, [sessionId]);
