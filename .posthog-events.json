@@ -1,0 +1,12 @@
+[
+  {
+    "event_name": "removed_menu_item",
+    "event_description": "Fired when a viewer removes a menu item from their order, either by decrementing to zero or clicking the Remove button in the cart.",
+    "file": "src/MenuPage.jsx"
+  },
+  {
+    "event_name": "checkout_confirmation_failed",
+    "event_description": "Fired on the thanks page when the checkout session could not be confirmed as paid, covering both the 'unpaid' and 'error' states.",
+    "file": "src/ThanksPage.jsx"
+  }
+]

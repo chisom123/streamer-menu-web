@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "site": "socialstar-orders",
+    "public": "build",
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}
