@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { functions } from './firebase';
 import { track, setStreamerContext } from './posthog';
 
@@ -13,6 +13,7 @@ function MenuPage() {
 
   const [profile, setProfile] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -21,6 +22,8 @@ function MenuPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [nameScreenOpen, setNameScreenOpen] = useState(false);
   const [buyerName, setBuyerName] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('1'); // '1' = US, '44' = UK
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [bump, setBump] = useState(false); // brief bounce on the bar when something's added
@@ -31,7 +34,7 @@ function MenuPage() {
       try {
         const [profileRes, menuRes] = await Promise.all([
           httpsCallable(functions, 'getStreamerPublicProfile')({ streamerId }),
-          httpsCallable(functions, 'getMenu')({})
+          httpsCallable(functions, 'getMenu')({ streamerId })
         ]);
         if (cancelled) return;
 
@@ -43,6 +46,7 @@ function MenuPage() {
         const p = { name: profileRes.data.name, avatarUrl: profileRes.data.avatarUrl };
         setProfile(p);
         setMenuItems(menuRes.data?.items ?? []);
+        setMenuCategories(menuRes.data?.categories ?? []);
         setStreamerContext(streamerId, p.name);
         track('viewed_menu', { streamer_id: streamerId });
       } catch (e) {
@@ -62,15 +66,40 @@ function MenuPage() {
     return map;
   }, [menuItems]);
 
+  const categoryNameById = useMemo(() => {
+    const map = {};
+    for (const cat of menuCategories) map[cat.id] = cat.name;
+    return map;
+  }, [menuCategories]);
+
+  // Group items by category, preserving category sortOrder, with any
+  // uncategorized items (categoryId null, or pointing at a category that
+  // no longer exists) collected into a trailing "Menu" bucket.
   const categorized = useMemo(() => {
+    const orderedCategories = [...menuCategories].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    );
+
     const groups = {};
+    for (const cat of orderedCategories) groups[cat.name] = [];
+
+    const uncategorized = [];
     for (const item of menuItems) {
-      const cat = item.category || 'Menu';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
+      const name = item.categoryId ? categoryNameById[item.categoryId] : undefined;
+      if (name && groups[name]) {
+        groups[name].push(item);
+      } else {
+        uncategorized.push(item);
+      }
+    }
+    if (uncategorized.length > 0) groups['Menu'] = uncategorized;
+
+    // Drop any empty categories (e.g. a category with no active items)
+    for (const key of Object.keys(groups)) {
+      if (groups[key].length === 0) delete groups[key];
     }
     return groups;
-  }, [menuItems]);
+  }, [menuItems, menuCategories, categoryNameById]);
 
   const cartLines = useMemo(() => {
     return Object.entries(cart)
@@ -86,7 +115,20 @@ function MenuPage() {
   const itemCount = cartLines.reduce((sum, l) => sum + l.quantity, 0);
   const total = cartLines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   const meetsMinimum = total >= MIN_ORDER_TOTAL;
-  const canSubmit = meetsMinimum && buyerName.trim().length > 0 && !submitting;
+
+  // National numbers are sometimes typed with a leading trunk 0 (common in
+  // the UK, e.g. "07911 123456"). PhoneNumberKit strips that on the app side
+  // before producing E.164, so we mirror that here — otherwise the same
+  // phone number would hash differently on web vs. app and matchOrdersOnSignup
+  // would never find it.
+  const rawDigits = buyerPhone.replace(/\D/g, '');
+  const nationalDigits = countryCode === '44' && rawDigits.startsWith('0')
+    ? rawDigits.slice(1)
+    : rawDigits;
+  const isValidPhone = nationalDigits.length === 10;
+  const buyerPhoneE164 = `+${countryCode}${nationalDigits}`;
+
+  const canSubmit = meetsMinimum && buyerName.trim().length > 0 && isValidPhone && !submitting;
   const progressPct = Math.min(100, (total / MIN_ORDER_TOTAL) * 100);
 
   function setQty(itemId, qty) {
@@ -137,11 +179,11 @@ function MenuPage() {
       items: cartLines.map((l) => ({ name: l.name, quantity: l.quantity }))
     });
     try {
-      const fn = httpsCallable(functions, 'createOrderCheckout');
+      const fn = httpsCallable(functions, 'createWebOrderCheckout');
       const res = await fn({
         streamerId,
         buyerName: buyerName.trim(),
-        buyerContact: null,
+        buyerPhone: buyerPhoneE164,
         items: cartLines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity }))
       });
       const url = res.data?.url;
@@ -255,8 +297,18 @@ function MenuPage() {
         .mp-empty-cart { text-align: center; color: var(--secondary-text); font-size: 13px; padding: 30px 0; line-height: 1.6; }
 
         .mp-fieldlabel { font-size: 12px; font-weight: 700; color: var(--secondary-text); margin: 18px 0 8px; }
-        .mp-input { width: 100%; background: var(--input-bg); border: none; border-radius: 12px; padding: 12px 14px; font-size: 16px; font-weight: 600; color: var(--primary-text); font-family: inherit; outline: none; }
-        .mp-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .mp-input { width: 100%; background: var(--input-bg); border: none; border-radius: 12px; padding: 15px 14px; font-size: 16px; font-weight: 600; color: var(--primary-text); font-family: inherit; outline: none; }
+
+        .mp-phone-row { display: flex; align-items: stretch; }
+        .mp-country-select-wrap { position: relative; flex-shrink: 0; display: flex; }
+        .mp-country-select {
+          appearance: none; -webkit-appearance: none; -moz-appearance: none;
+          border: none; background: #DCDCDC; border-radius: 12px 0 0 12px;
+          padding: 15px 14px; font-size: 16px; font-weight: 700; text-align: center;
+          color: var(--primary-text); font-family: inherit; outline: none; cursor: pointer;
+        }
+        .mp-phone-input { flex: 1; min-width: 0; border-radius: 0 12px 12px 0; }
+        .mp-phone-hint { font-size: 11px; color: var(--secondary-text); margin: 8px 0 0; line-height: 1.4; }
 
         .mp-sheet-footer { padding: 14px 20px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid var(--divider); background: #fff; }
         .mp-progress-track { height: 6px; background: var(--card-bg); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
@@ -265,7 +317,7 @@ function MenuPage() {
         .mp-total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
         .mp-total-label { font-size: 13px; color: var(--secondary-text); font-weight: 600; }
         .mp-total-value { font-size: 20px; font-weight: 800; color: var(--primary-text); }
-        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .mp-primarybtn { width: 100%; padding: 16px; border-radius: 999px; font-size: 16px; font-weight: 700; background: var(--accent); color: #fff; border: none; margin-top: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .mp-primarybtn:disabled { background: var(--disabled-bg); color: var(--disabled-text); cursor: not-allowed; }
         .mp-btn-spinner {
           width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
@@ -286,8 +338,13 @@ function MenuPage() {
         }
         .mp-namescreen.open { transform: translateY(0); }
         .mp-namescreen-scroll { flex: 1; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; }
-        .mp-namescreen-back { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary-text); font-size: 13px; font-weight: 700; margin-bottom: 24px; background: none; border: none; padding: 0; cursor: pointer; }
-        .mp-namescreen-title { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.3px; }
+        .mp-namescreen-back {
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--secondary-text); margin-bottom: 24px;
+          background: none; border: none; padding: 4px; margin-left: -4px;
+          cursor: pointer;
+        }
+        .mp-namescreen-title { font-size: 22px; font-weight: 800; margin: 0 0 24px; letter-spacing: -0.3px; }
         .mp-namescreen-sub { font-size: 13px; color: var(--secondary-text); margin: 0 0 28px; line-height: 1.5; }
 
         @media (min-width: 560px) {
@@ -438,13 +495,16 @@ function MenuPage() {
 
             <div className={`mp-namescreen ${nameScreenOpen ? 'open' : ''}`}>
               <div className="mp-namescreen-scroll">
-                <button className="mp-namescreen-back" onClick={() => setNameScreenOpen(false)}>
-                  ← Back to order
+                <button
+                  className="mp-namescreen-back"
+                  onClick={() => setNameScreenOpen(false)}
+                  aria-label="Back to order"
+                >
+                  <ArrowLeft size={24} strokeWidth={2.5} />
                 </button>
-                <h1 className="mp-namescreen-title">What's your name?</h1>
-                <p className="mp-namescreen-sub">So {profile.name} knows who sent it.</p>
+                <h1 className="mp-namescreen-title">Your details</h1>
 
-                <div className="mp-fieldlabel">Your name</div>
+                <div className="mp-fieldlabel">Name</div>
                 <input
                   className="mp-input"
                   placeholder="e.g. Mia"
@@ -452,6 +512,29 @@ function MenuPage() {
                   onChange={(e) => setBuyerName(e.target.value)}
                   autoFocus
                 />
+
+                <div className="mp-fieldlabel">Phone number</div>
+                <div className="mp-phone-row">
+                  <div className="mp-country-select-wrap">
+                    <select
+                      className="mp-country-select"
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      aria-label="Country code"
+                    >
+                      <option value="1">🇺🇸 +1</option>
+                      <option value="44">🇬🇧 +44</option>
+                    </select>
+                  </div>
+                  <input
+                    className="mp-input mp-phone-input"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder={countryCode === '44' ? '07911 123456' : '(555) 123-4567'}
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                  />
+                </div>
 
                 {submitError && <div className="mp-error">{submitError}</div>}
                 <button className="mp-primarybtn" disabled={!canSubmit} onClick={submitOrder}>
