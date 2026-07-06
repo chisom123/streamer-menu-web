@@ -49,7 +49,7 @@ function ThanksPage() {
       <div className="tp-root">
         <div className="tp-container">
           <span className="tp-icon" role="img" aria-label="Party popper">🎉</span>
-          <h1 className="tp-title">Watch live on the app</h1>
+          <h1 className="tp-title">Watch your order on the app</h1>
           <p className="tp-sub">
             You will be notified when the livestream starts.
           </p>
