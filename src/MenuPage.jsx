@@ -313,7 +313,7 @@ function MenuPage() {
         .mp-sheet-footer { padding: 14px 20px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid var(--divider); background: #fff; }
         .mp-progress-track { height: 6px; background: var(--card-bg); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
         .mp-progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
-        .mp-minnote { font-size: 12px; color: var(--danger); text-align: center; margin-bottom: 10px; font-weight: 600; }
+        .mp-minnote { font-size: 13px; color: var(--danger); text-align: center; margin-bottom: 10px; font-weight: 600; }
         .mp-total-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
         .mp-total-label { font-size: 13px; color: var(--secondary-text); font-weight: 600; }
         .mp-total-value { font-size: 20px; font-weight: 800; color: var(--primary-text); }
