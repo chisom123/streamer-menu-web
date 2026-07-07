@@ -56,7 +56,7 @@ function ThanksPage() {
 
           <a
             className="tp-download-btn"
-            href="https://apps.apple.com/app/socialstar/id6473705189"
+            href="https://apps.apple.com/app/socialstar/id6473705189?ppid=76a5812e-a07f-442f-a232-0cafa5ff1348"
             onClick={() => track('clicked_download_from_thanks', { session_id: sessionId })}
           >
             Download SocialStar
