@@ -2,14 +2,6 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { track } from './posthog';
 
-// UPDATED: copy no longer implies the streamer might go live "any time
-// soon" in a general sense — streams are now order-fulfillment sessions,
-// so the honest expectation to set is "your order is in their queue, and
-// you'll get a call/notification when they select it," not "they might go
-// live." Also mentions the app explicitly, since that's how the order
-// gets fulfilled (the buyer needs the app to receive the invite/VoIP
-// call once selected) and how a guest order gets matched via phone hash
-// if they weren't already signed up (see matchOrdersOnSignup).
 function ThanksPage() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
