@@ -1,16 +1,68 @@
-# React + Vite
+# Streamer Menu Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Web-based order form for live streamers to share with viewers ahead of a stream. Friends can browse and pay for request items before the stream starts, reducing friction and increasing engagement.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📱 Overview
 
-## React Compiler
+This web app is the companion to the live streaming iOS app. Streamers share a link to their menu, viewers browse available request options, add items to their cart, and pay in advance—so when the stream starts, the streamer already knows what requests to fulfil.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- **React** – Frontend
+- **Firebase** – Auth, Firestore, Cloud Functions
+- **Stripe** – Payment processing
+
+---
+
+## ✨ Key Features
+
+- **Menu browsing** – View all available request items for a streamer
+- **Cart management** – Add/remove items and see running total
+- **Checkout** – Enter name and phone number, then pay via Stripe
+- **Pre-stream ordering** – Viewers can place orders before the stream starts
+- **Live status** – Shows when the streamer is currently live
+
+---
+
+## 🏗️ Architecture
+
+Built on a **Firebase-first** backend:
+
+- **Firestore** – Stores menu items, orders, and streamer profiles
+- **Cloud Functions** – Serverless logic for order creation and payment processing
+- **Stripe** – Handles payment processing and checkout sessions
+
+---
+
+## 📸 Screenshots
+
+| Menu View | Cart |
+|-----------|------|
+| <img width="300" alt="Menu View" src="https://github.com/user-attachments/assets/3a1c8784-9c82-428e-821c-65243c794e9f" /> | <img width="300" alt="Cart" src="https://github.com/user-attachments/assets/3d79012f-8245-4e80-8f89-2500e9ebc939" /> |
+
+---
+
+## 🔗 Related Repos
+
+- [Live Streaming iOS App](https://github.com/chisom123/live-streaming-ios) – The main app where streamers go live and receive requests
+
+---
+
+## ⚙️ Setup
+
+This project uses Firebase. To run it locally:
+
+1. Clone the repo  
+2. Create a Firebase project and enable Auth, Firestore, and Cloud Functions  
+3. Add your Firebase config to the environment variables  
+4. Run `npm install` and `npm start`
+
+---
+
+## 📈 Evolution
+
+Built to solve a specific friction point—friends sending requests during a stream can be chaotic and interrupt the flow. This web menu lets viewers order ahead of time, so the streamer can focus on performing while knowing what requests are coming in.
